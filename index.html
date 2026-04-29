@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gravitationsgesetz: Planeten- und Satellitenbahnen</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css"
+      integrity="sha384-UA8juhPf75SzzAMA/4fo3yOU7sBJ0om7SCD2GHq0fZqZco6tr1UCV7nUbk9J90JM"
+      crossorigin="anonymous"
+    />
+    <script>
+      window.renderMathContent = function renderMathContent(root = document.body) {
+        if (typeof window.renderMathInElement !== "function") {
+          return;
+        }
+        window.renderMathInElement(root, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+          ],
+          throwOnError: false,
+        });
+      };
+    </script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.js"
+      integrity="sha384-Tt7wBxLKwSzFVRET4O4U9H6v8MNaQ/CjN2FMP4xFm0ErrFu6aNqoonRVW5W40iGI"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/contrib/auto-render.min.js"
+      integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz"
+      crossorigin="anonymous"
+      onload="window.renderMathContent && window.renderMathContent(document.body)"
+    ></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="panel control-panel">
+        <header class="panel-header">
+          <h1>Planeten- und Satellitenbahnen</h1>
+          <p class="panel-subtitle">eine Simulation zum Gravitationsgesetz</p>
+        </header>
+
+        <section class="group">
+          <h2>Schnellstart</h2>
+          <div class="field">
+            <label for="presetSelect">Preset</label>
+            <select id="presetSelect"></select>
+          </div>
+          <p id="presetDescription" class="hint compact-hint"></p>
+          <div class="button-row">
+            <button id="toggleRunButton" class="primary-button" type="button">Start</button>
+            <button id="resetButton" type="button">Reset</button>
+            <button id="applyButton" type="button">Werte übernehmen</button>
+            <button id="clearTrailButton" type="button">Spur löschen</button>
+          </div>
+          <p class="hint compact-hint">
+            Reset stellt das Preset wieder her. Werte übernehmen startet mit den aktuellen Eingaben neu.
+          </p>
+        </section>
+
+        <section class="group">
+          <h2>Anfangsbedingungen</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="distanceInput" id="distanceLabel">Anfangsabstand</label>
+              <input id="distanceInput" type="number" min="1000" step="1000" />
+            </div>
+            <div class="field">
+              <label for="speedInput" id="speedLabel">Anfangsgeschwindigkeit</label>
+              <input id="speedInput" type="number" min="0" step="1" />
+            </div>
+            <div class="field">
+              <label for="centralMassInput" id="centralMassLabel">Masse des Zentralkörpers</label>
+              <input id="centralMassInput" type="number" min="1" step="any" />
+            </div>
+            <div class="field">
+              <label for="satelliteMassInput" id="satelliteMassLabel">Masse des zweiten Körpers</label>
+              <input id="satelliteMassInput" type="number" min="1" step="any" />
+            </div>
+          </div>
+        </section>
+
+        <section class="group advanced-group">
+          <details id="advancedPanel">
+            <summary>Vertiefte Infos</summary>
+            <div class="details-body advanced-body">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="arrowScaleInput">Pfeilskalierung</label>
+                  <input id="arrowScaleInput" type="number" min="0.05" max="20" step="0.05" />
+                </div>
+              </div>
+              <div class="checkbox-grid">
+                <label><input id="showForceInput" type="checkbox" checked /> Kraftvektor anzeigen</label>
+                <label><input id="showBarycenterInput" type="checkbox" /> Schwerpunkt anzeigen</label>
+              </div>
+              <div class="info-box compact-box">
+                <strong>Preset-Daten</strong>
+                <div id="presetDataBox" class="embedded-info-box"></div>
+              </div>
+              <details>
+                <summary>Hilfen und Formeln</summary>
+                <div class="details-body">
+                  <details>
+                    <summary>Gravitationsgesetz</summary>
+                    <div class="details-body">
+                      <p>
+                        $$F_G = G \cdot \frac{m_1 m_2}{r^2}$$
+                      </p>
+                      <p>
+                        $$\vec a_1 = G \cdot m_2 \cdot \frac{\vec r_2 - \vec r_1}{\left|\vec r_2 - \vec r_1\right|^3}$$
+                      </p>
+                      <p>
+                        Fachlich zentral ist die Radialrichtung der Kraft entlang der Verbindungslinie sowie die Abhängigkeit vom inversen Quadrat des Abstands.
+                      </p>
+                      <p>
+                        Im Mehrkörpersystem ergibt sich die resultierende Beschleunigung aus der Vektorsumme aller Einzelbeiträge.
+                      </p>
+                      <p>
+                        Verdoppelte Masse verdoppelt den Kraftbeitrag, doppelter Abstand reduziert ihn auf ein Viertel.
+                      </p>
+                    </div>
+                  </details>
+
+                  <details>
+                    <summary>Warum gibt es einen Softening-Term?</summary>
+                    <div class="details-body">
+                      <p>
+                        Im idealen Modell gilt für die Stärke der Gravitation eine Abhängigkeit wie \(1/r^2\). In der Simulation wird bei sehr kleinen Abständen stattdessen mit einem Softening-Term gearbeitet, also vereinfacht mit einer Form wie \(1/(r^2 + \varepsilon^2)\).
+                      </p>
+                      <p>
+                        Dadurch bleiben Beschleunigungen bei nahen Begegnungen, Kollisionen oder groben Einstellungen numerisch beherrschbar. Die Simulation wird also robuster und produziert seltener instabile Sprünge oder unbrauchbare Werte.
+                      </p>
+                      <p>
+                        Das verbessert die Stabilität, weicht bei kleinen Abständen aber leicht vom idealen Newton-Modell ab. Besonders bei engen Satellitenbahnen kann das als langsames Nicht-Schließen einer Ellipse sichtbar werden.
+                      </p>
+                    </div>
+                  </details>
+
+                  <details>
+                    <summary>Umlaufbahn-Idee</summary>
+                    <div class="details-body">
+                      <p>
+                        Eine Umlaufbahn entsteht aus der Überlagerung einer tangentialen Anfangsbewegung mit einer fortlaufenden radialen Beschleunigung durch Gravitation.
+                      </p>
+                      <p>
+                        Nicht die Geschwindigkeit zeigt zum Zentralkörper, sondern die Beschleunigung. Die Bahnform entsteht durch die kontinuierliche Richtungsänderung des Geschwindigkeitsvektors.
+                      </p>
+                    </div>
+                  </details>
+
+                  <details>
+                    <summary>Euler-Cromer</summary>
+                    <div class="details-body">
+                      <p>$$\vec v_{n+1} = \vec v_n + \vec a_n \Delta t$$</p>
+                      <p>$$\vec r_{n+1} = \vec r_n + \vec v_{n+1}\Delta t$$</p>
+                      <p>
+                        Euler-Cromer ist ein einfaches Näherungsverfahren: Zuerst wird die Geschwindigkeit mit der aktuellen Beschleunigung aktualisiert, danach die Position.
+                      </p>
+                      <p>
+                        Didaktisch ist es gut zugänglich und robuster als das einfache Euler-Verfahren, bleibt aber nur begrenzt genau.
+                      </p>
+                      <p>
+                        Bei langen Läufen oder zu großem \(\Delta t\) kann die Gesamtenergie sichtbar driften.
+                      </p>
+                    </div>
+                  </details>
+
+                  <details>
+                    <summary>Velocity-Verlet</summary>
+                    <div class="details-body">
+                      <p>
+                        $$\vec r_{n+1} = \vec r_n + \vec v_n\Delta t + \frac{1}{2}\vec a_n \Delta t^2$$
+                      </p>
+                      <p>$$\vec a_{n+1} = \vec a(\vec r_{n+1})$$</p>
+                      <p>
+                        $$\vec v_{n+1} = \vec v_n + \frac{1}{2}(\vec a_n + \vec a_{n+1})\Delta t$$
+                      </p>
+                      <p>
+                        Velocity-Verlet nutzt die Beschleunigung am Anfang und am Ende des Zeitschritts und ist deshalb für Bahnprobleme meist geeigneter.
+                      </p>
+                      <p>
+                        Im Vergleich zu Euler-Cromer bleibt die Gesamtenergie in der Regel stabiler und die Bahnform konsistenter.
+                      </p>
+                    </div>
+                  </details>
+
+                  <details>
+                    <summary>Integrationsverfahren vergleichen</summary>
+                    <div class="details-body">
+                      <p>
+                        Beide Verfahren starten mit denselben Anfangsbedingungen, erzeugen aber unterschiedliche numerische Näherungen der Bewegung.
+                      </p>
+                      <p>
+                        Vor allem der Zeitschritt \(\Delta t\) beeinflusst Stabilität, Energieerhaltung und Bahnform. Zu große Werte können unphysikalische Ergebnisse erzeugen.
+                      </p>
+                      <p>
+                        Der direkte Vergleich gleicher Startwerte mit verschiedenem Verfahren macht numerische Modellgrenzen gut sichtbar.
+                      </p>
+                    </div>
+                  </details>
+                </div>
+              </details>
+            </div>
+          </details>
+        </section>
+
+        <footer class="panel-footer">
+          <span class="author-line">Lehel Szabó</span>
+          <span class="author-meta">Version 1.0</span>
+          <span id="editablePairText" class="sr-only">-</span>
+        </footer>
+      </aside>
+
+      <main class="sim-column">
+        <section class="panel canvas-panel">
+          <div class="canvas-toolbar">
+            <div class="toolbar-main">
+              <span class="badge" id="activeIntegratorBadge">Aktiv: Euler-Cromer</span>
+              <span class="badge subtle" id="viewScaleBadge">Zoom 1,0x</span>
+              <span class="badge subtle" id="scaleModeBadge">Darstellung: nicht maßstäblich</span>
+            </div>
+            <div class="toolbar-status">
+              <span class="status-inline"><strong>Status:</strong> <span id="statusText">Bereit</span></span>
+              <span class="status-inline"><strong>Zeit:</strong> <span id="simTimeText">0 s</span></span>
+            </div>
+          </div>
+          <canvas id="simulationCanvas" width="960" height="720"></canvas>
+          <div class="canvas-legend">
+            <span><span class="legend-swatch velocity"></span>Geschwindigkeit v</span>
+            <span><span class="legend-swatch force"></span>Gravitationskraft F<sub>G</sub></span>
+            <span><span class="legend-swatch barycenter"></span>Schwerpunkt</span>
+          </div>
+        </section>
+
+        <section class="panel energy-panel canvas-energy-panel" id="energyPanel">
+          <div class="energy-panel-header">
+            <h3>Energie im Blick</h3>
+            <p class="hint compact-hint">Hilfreich für den Vergleich von Euler-Cromer und Velocity-Verlet.</p>
+          </div>
+          <div class="energy-values">
+            <div><strong>E<sub>kin</sub>:</strong> <span id="kineticEnergyText">-</span></div>
+            <div><strong>E<sub>pot</sub>:</strong> <span id="potentialEnergyText">-</span></div>
+            <div><strong>E<sub>ges</sub>:</strong> <span id="totalEnergyText">-</span></div>
+          </div>
+          <canvas id="energyCanvas" width="960" height="150"></canvas>
+        </section>
+      </main>
+
+      <aside class="panel info-panel">
+        <section class="group info-panel-group">
+          <h2>Didaktische Hinweise</h2>
+          <p class="hint info-intro">
+            Startet mit Preset, Start/Pause, Δt und Zoom. Achtet darauf, dass die Gravitationskraft radial zum Zentralkörper zeigt, während die Geschwindigkeit entlang der Bahn gerichtet ist. Alle Zahlenwerte sind in den jeweiligen SI-Einheiten angegeben.
+          </p>
+          <p class="hint compact-hint secondary-note">
+            Mehr Formeln, Preset-Daten und Zusatzoptionen findet ihr links unter <strong>„Vertiefte Infos“</strong>.
+          </p>
+        </section>
+
+        <section class="group">
+          <h2>Ansicht</h2>
+          <div class="field-grid single-column-grid">
+            <div class="field">
+              <label for="zoomInput">Zoom</label>
+              <div class="range-row">
+                <input id="zoomInput" type="range" min="0.1" max="20" step="0.1" />
+                <span id="zoomValueText" class="range-value">1,0×</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="trailLengthInput">Länge der Bahnspur (0 = unbegrenzt)</label>
+              <input id="trailLengthInput" type="number" min="0" max="50000" step="10" />
+            </div>
+          </div>
+          <div class="checkbox-grid compact-checkboxes">
+            <label><input id="showTrailInput" type="checkbox" checked /> Bahnspur anzeigen</label>
+            <label><input id="showLabelsInput" type="checkbox" checked /> Namen anzeigen</label>
+            <label><input id="showVelocityInput" type="checkbox" checked /> Geschwindigkeitsvektor anzeigen</label>
+            <label><input id="showEnergyInput" type="checkbox" /> Energieanzeige anzeigen</label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Zeit &amp; Numerik</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="integratorSelect">Integrationsmodus</label>
+              <select id="integratorSelect">
+                <option value="euler-cromer">Euler-Cromer</option>
+                <option value="velocity-verlet">Velocity-Verlet</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="dtInput">Zeitschritt Δt (s)</label>
+              <input id="dtInput" type="number" min="0.001" step="any" />
+            </div>
+            <div class="field">
+              <label for="speedFactorInput">Simulationsgeschwindigkeit (sim. s / reale s)</label>
+              <input id="speedFactorInput" type="number" min="0.1" step="any" />
+            </div>
+          </div>
+          <p id="integratorInfo" class="hint compact-hint"></p>
+        </section>
+      </aside>
+    </div>
+
+    <script src="./physics.js"></script>
+    <script src="./presets.js"></script>
+    <script src="./ui.js"></script>
+    <script src="./simulation.js"></script>
+  </body>
+</html>
