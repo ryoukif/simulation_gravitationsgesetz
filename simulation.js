@@ -41,6 +41,8 @@ const elements = {
   speedFactorInput: document.getElementById("speedFactorInput"),
   zoomInput: document.getElementById("zoomInput"),
   zoomValueText: document.getElementById("zoomValueText"),
+  canvasSizeInput: document.getElementById("canvasSizeInput"),
+  canvasSizeValueText: document.getElementById("canvasSizeValueText"),
   trailLengthInput: document.getElementById("trailLengthInput"),
   arrowScaleInput: document.getElementById("arrowScaleInput"),
   distanceInput: document.getElementById("distanceInput"),
@@ -87,6 +89,7 @@ const state = {
     dt: 5,
     speedFactor: 4500,
     zoom: 1,
+    canvasScale: 1,
     trailLength: 10000,
     arrowScale: 1,
     showTrail: true,
@@ -105,6 +108,10 @@ const state = {
 
 function formatZoomFactor(value) {
   return `${value.toFixed(2).replace(".", ",")}×`;
+}
+
+function formatCanvasScale(value) {
+  return `${Math.round(value * 100)} %`;
 }
 
 function initializePresetSelect() {
@@ -185,6 +192,7 @@ function readControls() {
     Number(elements.speedFactorInput.value) || state.preset.recommended.speedFactor,
   );
   state.controls.zoom = Math.max(0.05, Number(elements.zoomInput.value) || state.preset.recommended.zoom);
+  state.controls.canvasScale = Math.max(0.7, Math.min(1.4, Number(elements.canvasSizeInput.value) || 1));
   state.controls.trailLength = Math.max(
     0,
     Math.round(Number(elements.trailLengthInput.value) || state.preset.recommended.trailLength),
@@ -319,6 +327,9 @@ function updateUiStatus() {
   setBadgeText(elements.scaleModeBadge, `Darstellung: ${getScaleModeLabel()}`);
   if (elements.zoomValueText) {
     elements.zoomValueText.textContent = formatZoomFactor(state.controls.zoom);
+  }
+  if (elements.canvasSizeValueText) {
+    elements.canvasSizeValueText.textContent = formatCanvasScale(state.controls.canvasScale);
   }
   updateIntegratorInfo(elements.integratorInfo, state.controls.integrator);
   elements.energyPanel.hidden = !state.controls.showEnergy;
@@ -787,6 +798,7 @@ function bindEvents() {
     elements.dtInput,
     elements.speedFactorInput,
     elements.zoomInput,
+    elements.canvasSizeInput,
     elements.trailLengthInput,
     elements.arrowScaleInput,
     elements.showTrailInput,
@@ -799,7 +811,7 @@ function bindEvents() {
     element.addEventListener("input", () => {
       readControls();
       updateUiStatus();
-      if (element === elements.showEnergyInput) {
+      if (element === elements.showEnergyInput || element === elements.canvasSizeInput) {
         resizeCanvases();
         if (elements.showEnergyInput.checked) {
           requestAnimationFrame(() => {
@@ -838,7 +850,8 @@ function resizeCanvases() {
   const toolbarHeight = elements.canvasToolbar?.getBoundingClientRect().height ?? 0;
   const legendHeight = elements.canvasLegend?.getBoundingClientRect().height ?? 0;
   const simulationWidth = Math.max(640, Math.round(currentRect.width));
-  const simulationHeight = Math.max(420, Math.round(panelHeight - toolbarHeight - legendHeight));
+  const baseHeight = Math.max(420, Math.round(panelHeight - toolbarHeight - legendHeight));
+  const simulationHeight = Math.max(320, Math.round(baseHeight * state.controls.canvasScale));
   const simulationViewport = configureCanvas(canvas, ctx, simulationWidth, simulationHeight);
 
   const energyRect = elements.energyPanel.hidden ? { width: simulationWidth } : energyCanvas.getBoundingClientRect();
